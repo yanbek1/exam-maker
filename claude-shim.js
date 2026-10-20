@@ -15,6 +15,8 @@
   var KEY_STORE = "examroom.anthropicKey";
   var MODEL_STORE = "examroom.models";
   var API_URL = "https://api.anthropic.com/v1/messages";
+  // API 키 없이 쓰는 길: 같은 출제실의 Claude 아티팩트(각자 Claude 요금제 사용량으로 돈다)
+  var ARTIFACT_URL = "https://claude.ai/artifact/PEVREELVvMEBNcogmwXxEX";
   var DEFAULT_MODELS = { "default": "claude-sonnet-5-5", complex: "claude-opus-5-5" };
 
   function readLS(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
@@ -216,10 +218,11 @@
       "body.st-lock .ks-btn,body.pv-lock .ks-btn{display:none}" +
       ".ks-wrap{position:fixed;inset:0;z-index:95;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:16px}" +
       ".ks-wrap[hidden]{display:none}" +
-      ".ks{background:#fff;color:#111827;border-radius:14px;max-width:440px;width:100%;padding:18px 18px 16px;font:14px/1.6 system-ui,-apple-system,'Apple SD Gothic Neo',sans-serif;box-shadow:0 20px 50px rgba(0,0,0,.25)}" +
+      ".ks{background:#fff;color:#111827;border-radius:14px;max-width:440px;width:100%;max-height:calc(100vh - 32px);overflow:auto;box-sizing:border-box;padding:18px 18px 16px;font:14px/1.6 system-ui,-apple-system,'Apple SD Gothic Neo',sans-serif;box-shadow:0 20px 50px rgba(0,0,0,.25)}" +
       ".ks h2{margin:0 0 6px;font-size:17px}.ks p{margin:4px 0 10px;color:#566074;font-size:13px}" +
       ".ks label{display:block;font-size:12px;font-weight:700;margin:8px 0 3px}.ks input{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #cbd2dd;border-radius:8px;font:inherit}" +
       ".ks .row{display:flex;gap:8px;margin-top:12px}.ks .row button{flex:1;padding:9px;border-radius:8px;border:1px solid #1d3f94;background:#1d3f94;color:#fff;font:inherit;font-weight:700;cursor:pointer}" +
+      ".ks .ks-go{flex:1;display:block;text-align:center;padding:10px;border-radius:8px;background:#d97757;color:#fff;font-weight:700;text-decoration:none}" +
       ".ks .row button.g{background:#fff;color:#111827;border-color:#cbd2dd}.ks-warn{color:#b9332a!important;font-weight:700}.ks details{margin-top:6px}.ks summary{cursor:pointer;font-size:12px;color:#566074}";
     document.head.appendChild(css);
     var btn = document.createElement("button");
@@ -229,14 +232,17 @@
     panel = document.createElement("div");
     panel.className = "ks-wrap"; panel.hidden = true;
     panel.innerHTML =
-      '<div class="ks" role="dialog" aria-label="API 키 설정"><h2>Anthropic API 키</h2>' +
-      '<p class="ks-warn" hidden>문제를 만들려면 API 키가 필요합니다.</p>' +
+      '<div class="ks" role="dialog" aria-label="문제 만드는 방법"><h2>API 키 없이 쓰기</h2>' +
+      '<p class="ks-warn" hidden>문제를 만들려면 아래 두 방법 중 하나가 필요합니다.</p>' +
+      '<p>Claude 계정(무료·Pro·Max 요금제)이 있으면 <b>API 키 없이</b> 같은 출제실을 Claude 안에서 쓸 수 있습니다. 문제를 만들 때 <b>각자 Claude 요금제 사용량</b>이 쓰이고, 지난 문제는 Claude 계정에 저장됩니다.</p>' +
+      '<div class="row" style="margin:0 0 6px"><a class="ks-go" href="' + ARTIFACT_URL + '" target="_blank" rel="noopener">Claude 계정으로 열기 ↗</a></div>' +
+      '<h2 style="margin-top:14px">또는 Anthropic API 키</h2>' +
       '<p>이 웹사이트는 문제를 만들 때 Anthropic API를 직접 부릅니다. <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic Console</a>에서 키를 만들어 넣어 주세요. 사용한 만큼 요금이 나옵니다.<br>키는 <b>이 브라우저에만</b> 저장되고, 이 사이트 서버에는 보내지 않습니다(서버가 없습니다). 공용 컴퓨터에서는 다 쓰고 [지우기]를 누르세요.</p>' +
       '<label for="ksKey">API 키</label><input id="ksKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-...">' +
       '<details><summary>모델 바꾸기 (보통은 그대로 두세요)</summary><label for="ksM1">기본</label><input id="ksM1" spellcheck="false"><label for="ksM2">어려운 작업(검수·채점)</label><input id="ksM2" spellcheck="false"></details>' +
       '<div class="row"><button type="button" class="g" id="ksDel">지우기</button><button type="button" class="g" id="ksClose">닫기</button><button type="button" id="ksSave">저장</button></div></div>';
     document.body.appendChild(panel);
-    function paint() { btn.classList.toggle("need", !apiKey()); btn.textContent = apiKey() ? "🔑 API 키" : "🔑 API 키 넣기"; }
+    function paint() { btn.classList.toggle("need", !apiKey()); btn.textContent = apiKey() ? "🔑 API 키" : "🔑 문제 만드는 방법"; }
     panel.querySelector("#ksSave").addEventListener("click", function () {
       writeLS(KEY_STORE, panel.querySelector("#ksKey").value.trim() || null);
       writeLS(MODEL_STORE, JSON.stringify({ "default": panel.querySelector("#ksM1").value.trim(), complex: panel.querySelector("#ksM2").value.trim() }));
