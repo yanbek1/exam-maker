@@ -1,53 +1,29 @@
-# 내신 문제 생성기
+# 문제 출제실 (내신 문제 생성기)
 
-학습 자료(PDF·이미지·텍스트)를 업로드하면 고난도 내신형 시험지 + 정답·해설지를 자동으로 만들어 주는 **완전 정적 웹사이트**입니다. 백엔드 없이 브라우저에서 Anthropic Claude API를 직접 호출합니다.
+교과서·프린트를 넣으면 과목별 내신 시험지·학습지를 만들고, 2차 검수, 학습지 풀기(펜슬 필기·채점·풀이 점검),
+지난 문제, 오답노트, 푼 문제 달력까지 한곳에서 쓰는 **정적 웹사이트**입니다.
 
-## 기능
+- 사이트: https://yanbek1.github.io/exam-maker/
+- 원본: Claude 아티팩트 「문제 출제실」. 이 저장소의 `index.html`은 그 원본으로 `build_site.py`가 만든 것입니다.
 
-- PDF / 이미지(JPG·PNG·WebP·GIF) / 텍스트 파일 업로드 (드래그 앤 드롭 지원) 또는 텍스트 붙여넣기
-- 업로드한 자료 내용만으로 고난도 내신형 5지선다 문항 출제 (문항 수·난이도·추가 요청 설정 가능)
-- 실제 내신 시험지 스타일 레이아웃:
-  - A4 세로 2단 다단 구성
-  - 굵은 초록색 문항 번호 (01, 02 …)
-  - 모서리가 둥근 `<보기>` 박스 (라벨이 테두리 선 위에 걸치는 디자인)
-  - 일반 선지는 세로 1열, ㄱㄴㄷ 고르기형은 3-2 배열
-  - 해설지는 새 페이지에 분리, 상단에 초록 테마 빠른 정답 그리드, 오답 해설에 '바로알기' 캡슐 배지
-- 화면 미리보기 + **PDF 저장(브라우저 인쇄)** + HTML 파일 다운로드
+## 웹사이트판이 아티팩트와 다른 점
 
-## 사용 방법
+| | Claude 아티팩트 | 이 웹사이트 |
+|---|---|---|
+| 문제 생성 | Claude 계정 사용량 | **각자의 Anthropic API 키** (왼쪽 아래 🔑, 사용한 만큼 요금) |
+| 저장(지난 문제·필기·달력) | Claude 저장소 | **이 브라우저의 IndexedDB** — 기기·브라우저마다 따로, 사이트 데이터를 지우면 사라짐 |
+| 키 보관 | — | 이 브라우저 localStorage에만. 서버가 없어 어디에도 보내지 않음(Anthropic API 호출 제외) |
 
-1. [Anthropic Console](https://console.anthropic.com/settings/keys)에서 API 키를 발급받아 1단계에 입력하고 저장 (키는 브라우저 localStorage에만 보관됩니다)
-2. 학습 자료를 업로드
-3. 문항 수·난이도 등을 고르고 **시험지 생성하기** 클릭
-4. 결과 화면에서 **PDF로 저장(인쇄)** → 인쇄 대상에서 "PDF로 저장" 선택
+호환층은 `claude-shim.js` 하나입니다: `claude.use("sample" | "db" | "user" | "downloads")`를
+Anthropic Messages API(스트리밍)·IndexedDB·파일 내려받기로 바꿔 줍니다. 아티팩트 안에서는 아무것도 하지 않습니다.
 
-API 키 없이 레이아웃만 보려면 **디자인 미리보기(샘플)** 버튼을 누르세요.
+## 고치는 법
 
-## GitHub Pages 배포
+1. 아티팩트 원본(`문제 생성기/daechi-examroom.html`)을 고친다.
+2. `python3 build_site.py` → `index.html` 다시 만들기.
+3. 커밋하고 `main`에 푸시하면 GitHub Pages가 몇 분 안에 반영합니다.
 
-```bash
-cd exam-maker
-git init
-git add .
-git commit -m "내신 문제 생성기"
-git branch -M main
-git remote add origin https://github.com/<사용자명>/<저장소명>.git
-git push -u origin main
-```
+## 그 밖
 
-그다음 GitHub 저장소 → **Settings → Pages → Source: Deploy from a branch → main / (root)** 선택.
-몇 분 뒤 `https://<사용자명>.github.io/<저장소명>/` 에서 접속할 수 있습니다.
-
-## 파일 구성
-
-| 파일 | 설명 |
-|---|---|
-| `index.html` | 페이지 구조 (업로드 UI, 옵션, 미리보기) |
-| `style.css` | 사이트 UI 스타일 |
-| `app.js` | 파일 처리, Claude API 스트리밍 호출, 시험지 렌더링·다운로드. 시험지 인쇄용 CSS(`EXAM_CSS`)와 출제 프롬프트(`buildSystemPrompt`)도 여기에 있습니다 |
-
-## 주의
-
-- API 사용량에 따라 Anthropic 요금이 부과됩니다 (자료 분량·문항 수에 비례).
-- 공용 컴퓨터에서는 사용 후 API 키를 지우세요 (localStorage에 저장됨).
-- 생성된 문제는 반드시 원본 자료와 대조해 검토 후 사용하세요.
+- `v1/` — 예전 첫 버전(단순 생성기). https://yanbek1.github.io/exam-maker/v1/
+- 생성된 문제는 원본 자료와 대조해 검토한 뒤 사용하세요.

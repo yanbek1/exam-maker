@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내신 문제 생성기 — 고난도 내신 시험지 자동 제작</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <h1>📗 내신 문제 생성기</h1>
+    <p>학습 자료(PDF·이미지·텍스트)를 올리면 고난도 내신형 시험지 + 해설지를 자동으로 만들어 드립니다.</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- STEP 1: API 키 -->
+  <section class="card">
+    <h2><span class="step">1</span> API 키 설정</h2>
+    <p class="hint">
+      문제 생성에는 Anthropic Claude API가 사용됩니다.
+      <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>에서 발급한
+      본인의 API 키를 입력하세요. 키는 서버로 전송되지 않고 <b>이 브라우저(localStorage)에만 저장</b>됩니다.
+    </p>
+    <div class="row">
+      <input type="password" id="apiKey" placeholder="sk-ant-api03-..." autocomplete="off">
+      <button type="button" id="toggleKey" class="btn ghost" title="키 보기/숨기기">👁</button>
+      <button type="button" id="saveKey" class="btn">저장</button>
+    </div>
+    <p class="hint small" id="keyStatus"></p>
+  </section>
+
+  <!-- STEP 2: 자료 업로드 -->
+  <section class="card">
+    <h2><span class="step">2</span> 학습 자료 업로드</h2>
+    <div id="dropZone" class="drop-zone">
+      <p class="dz-icon">📂</p>
+      <p><b>파일을 여기로 끌어다 놓거나 클릭해서 선택</b></p>
+      <p class="hint small">PDF · 이미지(JPG/PNG/WebP/GIF) · 텍스트(.txt/.md) — 여러 개 가능, 총 25MB 이하 권장</p>
+      <input type="file" id="fileInput" multiple accept=".pdf,.txt,.md,image/png,image/jpeg,image/webp,image/gif" hidden>
+    </div>
+    <ul id="fileList" class="file-list"></ul>
+    <details class="paste-text">
+      <summary>또는 텍스트를 직접 붙여넣기</summary>
+      <textarea id="pastedText" rows="6" placeholder="교과서·프린트 내용을 여기에 붙여넣어도 됩니다."></textarea>
+    </details>
+  </section>
+
+  <!-- STEP 3: 출제 옵션 -->
+  <section class="card">
+    <h2><span class="step">3</span> 출제 옵션</h2>
+    <div class="options-grid">
+      <label>문항 수
+        <select id="numQuestions">
+          <option>4</option><option>6</option><option selected>8</option>
+          <option>10</option><option>12</option><option>15</option><option>20</option>
+        </select>
+      </label>
+      <label>난이도
+        <select id="difficulty">
+          <option value="중">중 (개념 확인 위주)</option>
+          <option value="상" selected>상 (고난도 내신형)</option>
+          <option value="최상">최상 (킬러 문항 포함)</option>
+        </select>
+      </label>
+      <label>시험지 제목
+        <input type="text" id="examTitle" placeholder="예: 2학기 중간고사 대비 — 생명과학Ⅰ">
+      </label>
+      <label>모델
+        <select id="model">
+          <option value="claude-opus-5" selected>Claude Opus 5 (기본 · 고품질)</option>
+          <option value="claude-sonnet-5">Claude Sonnet 5 (빠름 · 저렴)</option>
+        </select>
+      </label>
+    </div>
+    <label class="block-label">추가 요청사항 (선택)
+      <textarea id="extraNotes" rows="2" placeholder="예: 서술형 2문항 포함, ㄱㄴㄷ 보기형 위주로, 3단원만 출제 등"></textarea>
+    </label>
+  </section>
+
+  <!-- 생성 버튼 -->
+  <section class="generate-area">
+    <button type="button" id="generateBtn" class="btn big">🖨 시험지 생성하기</button>
+    <button type="button" id="sampleBtn" class="btn ghost">디자인 미리보기 (샘플)</button>
+    <div id="progress" class="progress" hidden>
+      <div class="spinner"></div>
+      <span id="progressText">자료를 분석하고 있습니다…</span>
+    </div>
+    <p id="errorBox" class="error" hidden></p>
+  </section>
+
+  <!-- STEP 4: 결과 -->
+  <section class="card result-card" id="resultCard" hidden>
+    <h2><span class="step">4</span> 생성된 시험지</h2>
+    <div class="result-actions">
+      <button type="button" id="printBtn" class="btn">📄 PDF로 저장 (인쇄)</button>
+      <button type="button" id="downloadHtmlBtn" class="btn ghost">⬇ HTML 파일 다운로드</button>
+      <span class="hint small">PDF 저장: 인쇄 대화상자에서 대상(프린터)을 <b>“PDF로 저장”</b>으로 선택하세요.</span>
+    </div>
+    <iframe id="previewFrame" class="preview-frame" title="시험지 미리보기"></iframe>
+  </section>
+
+  <section class="notice">
+    <h3>안내</h3>
+    <ul>
+      <li>업로드한 자료는 문제 생성을 위해 Anthropic API로만 전송되며, 별도의 서버에 저장되지 않습니다.</li>
+      <li>API 사용량에 따라 Anthropic 요금이 부과됩니다 (자료 분량과 문항 수에 비례).</li>
+      <li>생성된 문제는 반드시 원본 자료와 대조하여 검토 후 사용하세요.</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">내신 문제 생성기 — 정적 사이트 (GitHub Pages) · 백엔드 없음 · 키와 자료는 브라우저에만 보관</div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
