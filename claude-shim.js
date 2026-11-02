@@ -251,6 +251,25 @@
     panel.querySelector("#ksDel").addEventListener("click", function () { writeLS(KEY_STORE, null); panel.querySelector("#ksKey").value = ""; paint(); });
     panel.querySelector("#ksClose").addEventListener("click", function () { panel.hidden = true; });
     panel.addEventListener("click", function (e) { if (e.target === panel) panel.hidden = true; });
+    // 앱이 좁은 화면에서 컴퓨터 배치를 축소(LAYOUT.z)해도 키 버튼·창은 원래 크기로 보이게 되돌린다.
+    function unzoom() {
+      var z = (window.LAYOUT && window.LAYOUT.z) || 1;
+      [btn, panel].forEach(function (el) {
+        el.style.zoom = z < 1 ? String(1 / z) : "";
+        if (z < 1) el.style.setProperty("--lz", "1"); else el.style.removeProperty("--lz");
+      });
+      // 왼쪽 메뉴가 보이면 그 오른쪽에 둬서 메뉴 아래쪽 [핸드폰 버전] 버튼을 가리지 않게 한다.
+      var side = document.getElementById("sideNav");
+      var r = side && getComputedStyle(side).display !== "none" ? side.getBoundingClientRect() : null;
+      btn.style.left = r && r.width ? Math.round(r.right + 12) + "px" : "";
+      // 아래 탭 메뉴가 보이면 그 위로 올린다.
+      var tab = document.getElementById("tabBar");
+      var t = tab && getComputedStyle(tab).display !== "none" ? tab.getBoundingClientRect() : null;
+      btn.style.bottom = t && t.height ? Math.round(innerHeight - t.top + 10) + "px" : "";
+    }
+    window.addEventListener("resize", function () { setTimeout(unzoom, 50); });
+    window.addEventListener("load", unzoom);
+    setTimeout(unzoom, 0);
     paint();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { if (!panel) build(); });
